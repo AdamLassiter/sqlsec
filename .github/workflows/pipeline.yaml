@@ -1,0 +1,79 @@
+on: [push, pull_request]
+
+name: Continuous integration
+
+jobs:
+  cargo:
+    name: Cargo
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          # - stable
+          # - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          components: rustfmt, clippy, rust-src
+      - uses: Swatinem/rust-cache@v2
+
+      # Install eBPF linker (needed for io-scope-ebpf)
+      - name: Install bpf-linker
+        run: cargo install bpf-linker
+
+      # ---- Userspace build (io-scope) ----
+      - name: Userspace check
+        run: cargo -Z unstable-options -C io-scope check
+
+      - name: Userspace format check
+        run: cargo -Z unstable-options -C io-scope fmt --all -- --check
+
+      - name: Userspace clippy
+        run: cargo -Z unstable-options -C io-scope clippy -- -D warnings
+
+      - name: Userspace build
+        run: cargo -Z unstable-options -C io-scope build
+
+      - name: Userspace tests
+        run: cargo -Z unstable-options -C io-scope test --features ci
+
+      # ---- eBPF build (io-scope-ebpf) ----
+      - name: eBPF build
+        run: cargo -Z unstable-options -C io-scope-ebpf build-ebpf
+        # Assumes io-scope-ebpf/.cargo/config.toml defines:
+        # [alias] build-ebpf = "build -Z build-std=core"
+  
+  markdown:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actionshub/markdownlint@v3.1.4
+
+  mdbook:
+    name: MdBook
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          # - stable
+          - beta
+          # - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          components: rustfmt, clippy
+      - run: |
+          tag=$(curl 'https://api.github.com/repos/rust-lang/mdbook/releases/latest' | jq -r '.tag_name')
+          url="https://github.com/rust-lang/mdbook/releases/download/${tag}/mdbook-${tag}-x86_64-unknown-linux-gnu.tar.gz"
+          mkdir bin
+          curl -sSL $url | tar -xz --directory=bin
+          echo "$(pwd)/bin" >> $GITHUB_PATH
+      - run: |
+          cd docs
+          mdbook build

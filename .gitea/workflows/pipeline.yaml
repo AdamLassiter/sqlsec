@@ -1,0 +1,52 @@
+on: [push, pull_request]
+
+name: Continuous integration
+
+jobs:
+  cargo:
+    name: Cargo
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          # - stable
+          # - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          components: rustfmt, clippy, rust-src
+      - uses: Swatinem/rust-cache@v2
+
+      # Install eBPF linker (needed for io-scope-ebpf)
+      - name: Install bpf-linker
+        run: cargo install bpf-linker
+
+      # ---- eBPF build (io-scope-ebpf) ----
+      - name: eBPF build
+        run: cargo -Z unstable-options -C io-scope-ebpf build-ebpf
+
+      # ---- Userspace build (io-scope) ----
+      - name: Userspace check
+        run: cargo -p io-scope check
+
+      - name: Userspace format check
+        run: cargo -p io-scope fmt --all -- --check
+
+      - name: Userspace clippy
+        run: cargo -p io-scope clippy -- -D warnings
+
+      - name: Userspace build
+        run: cargo -p io-scope build
+
+      - name: Userspace tests
+        run: cargo -p io-scope test --features ci
+  
+  markdown:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actionshub/markdownlint@v3.1.4
