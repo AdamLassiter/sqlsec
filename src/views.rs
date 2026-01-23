@@ -239,7 +239,7 @@ fn create_write_triggers(conn: &Connection, table: &SecTable, visible_cols: &[&s
         BEGIN
             INSERT INTO "{physical}" ("{row_label_col}", {insert_cols})
             VALUES (
-                COALESCE(NEW."{row_label_col}", 1),
+                NEW."{row_label_col}",
                 {insert_vals}
             );
         END;
