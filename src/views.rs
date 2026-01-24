@@ -277,7 +277,8 @@ fn refresh_single_view(conn: &Connection, table: &SecTable, ctx: &SecurityContex
         CREATE TEMP VIEW "{}" AS
         SELECT {}
         FROM "{}"
-        WHERE sec_row_visible("{}");
+        WHERE sec_assert_fresh()
+          AND sec_row_visible("{}");
         "#,
         table.logical_name,
         table.logical_name,
