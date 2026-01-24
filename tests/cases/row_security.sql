@@ -11,7 +11,7 @@ CREATE TABLE __sec_customers (
 INSERT INTO __sec_customers VALUES
     (1, 1, 'Alice',   'alice@ex.com',   '111'),
     (2, 2, 'Bob',     'bob@ex.com',     '222'),
-    (3, 3, 'Charlie', 'charlie@ex.com', '333');
+  (3, 3, 'Charlie', 'charlie@ex.com', '333');
 
 .load ./target/debug/libsqlsec
 

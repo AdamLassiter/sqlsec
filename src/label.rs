@@ -94,10 +94,6 @@ pub fn parse(expr: &str) -> std::result::Result<Label, String> {
     }
 }
 
-// ============================================================================
-// Label cache and DB operations
-// ============================================================================
-
 static LABEL_CACHE: Lazy<Mutex<HashMap<i64, Label>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// Define a label using a Connection reference (for tests and direct use)
@@ -124,6 +120,20 @@ pub fn define_label_raw(db_ptr: usize, expr: &str) -> Result<i64> {
     let result = define_label(&conn, expr);
     forget(conn);
     result
+}
+
+pub fn evaluate_label_expr(expr: &str, ctx: &SecurityContext) -> Option<i64> {
+    match parse(expr) {
+        Ok(label) => {
+            if label.evaluate(ctx) {
+                // For triggers, we just return a dummy id (or 1 if needed)
+                Some(1) // placeholder, you can adjust based on your label table
+            } else {
+                None
+            }
+        }
+        Err(_) => None,
+    }
 }
 
 /// Evaluate label by ID against context (using Connection)

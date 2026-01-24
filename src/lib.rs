@@ -1,5 +1,3 @@
-#[cfg(false)]
-mod authorizer;
 pub mod context;
 pub mod label;
 pub mod register;
@@ -12,7 +10,6 @@ use std::{
     ptr,
 };
 
-use context::SecurityContext;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use rusqlite::{
@@ -28,16 +25,18 @@ use rusqlite::{
     },
 };
 
+use crate::context::ContextStack;
+
 /// Global map: db handle address -> SecurityContext
-pub static CONTEXTS: Lazy<Mutex<HashMap<usize, SecurityContext>>> =
+pub static CONTEXTS: Lazy<Mutex<HashMap<usize, ContextStack>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// Get or create context for a connection
-pub fn get_context(db_ptr: usize) -> SecurityContext {
+pub fn get_context_stack(db_ptr: usize) -> ContextStack {
     CONTEXTS.lock().entry(db_ptr).or_default().clone()
 }
 
-pub fn set_context(db_ptr: usize, ctx: SecurityContext) {
+pub fn set_context_stack(db_ptr: usize, ctx: ContextStack) {
     CONTEXTS.lock().insert(db_ptr, ctx);
 }
 
@@ -58,12 +57,7 @@ pub unsafe extern "C" fn sqlite3_sqlsec_init(
     }
 
     match unsafe { init_extension_ffi(db) } {
-        Ok(_) => {
-            // Install authorizer
-            #[cfg(false)]
-            authorizer::install(db);
-            SQLITE_OK
-        }
+        Ok(_) => SQLITE_OK,
         Err(e) => {
             set_err_message(pz_err_msg, &format!("sqlsec initialization failed: {e}"));
             SQLITE_ERROR
@@ -110,7 +104,9 @@ unsafe fn init_extension_ffi(db: *mut sqlite3) -> Result<()> {
             logical_name   TEXT PRIMARY KEY,
             physical_name  TEXT NOT NULL,
             row_label_col  TEXT NOT NULL,
-            table_label_id INTEGER REFERENCES sec_labels(id)
+            table_label_id INTEGER REFERENCES sec_labels(id),
+            insert_label_id INTEGER REFERENCES sec_labels(id),
+            allow_explicit_label INTEGER DEFAULT 1
         );
 
         CREATE TABLE IF NOT EXISTS sec_columns (
