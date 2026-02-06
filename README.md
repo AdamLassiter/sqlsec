@@ -127,7 +127,7 @@ Each column can have its own label:
 
 ```sql
 UPDATE sec_columns
-SET label_id = sec_define_label('role=manager')
+SET read_label_id = sec_define_label('role=manager')
 WHERE logical_table = 'employees'
   AND column_name = 'salary';
 ```
@@ -224,17 +224,18 @@ Example:
 
 ```sql
 UPDATE sec_columns
-SET label_id = sec_define_label('role=admin')
+SET read_label_id = sec_define_label('role=admin')
+SET update_label_id = sec_define_label('role=auditor')
 WHERE column_name = 'ssn';
 ```
 
 Results:
 
-| Role    | Visible columns      |
-| ------- | -------------------- |
-| user    | id, name, email      |
-| auditor | id, name, email      |
-| admin   | id, name, email, ssn |
+| Role    | Visible columns      | Updatable columns    |
+| ------- | -------------------- | -------------------- |
+| user    | id, name, email      | id, name, email      |
+| auditor | id, name, email      | id, name, email, ssn |
+| admin   | id, name, email, ssn | id, name, email      |
 
 ---
 

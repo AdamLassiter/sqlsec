@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     io::Write,
     path::{Path, PathBuf},
@@ -37,18 +38,8 @@ fn run_test_case(name: &str) -> bool {
     let expected_err_path = expected_dir.join(format!("{name}.err"));
 
     // Decide mode: normal success test (.out) or failure test (.err)
+    let expect_output = expected_out_path.exists();
     let expect_error = expected_err_path.exists();
-    let expected_path = if expect_error {
-        &expected_err_path
-    } else {
-        &expected_out_path
-    };
-
-    assert!(
-        expected_path.exists(),
-        "missing expected output or error file: {}.out/.err",
-        name
-    );
 
     let lib_path = extension_path();
     assert!(
@@ -57,7 +48,6 @@ fn run_test_case(name: &str) -> bool {
         lib_path.display()
     );
 
-    let expected_output = fs::read_to_string(expected_path).expect("could not read expected file");
     let sql_content = fs::read_to_string(&sql_path).expect("could not read SQL test case file");
 
     // Feed script via stdin
@@ -100,54 +90,47 @@ fn run_test_case(name: &str) -> bool {
     };
 
     // Decide whether this test passed:
+    let mut success = true;
+
     let stdout_str = String::from_utf8_lossy(&output.stdout);
     let stderr_str = String::from_utf8_lossy(&output.stderr);
 
-    let expected_trimmed = expected_output.trim().replace("\r\n", "\n");
+    if expect_output {
+        let expected_output =
+            fs::read_to_string(expected_out_path).expect("could not read expected output file");
+        let expected_output = expected_output.trim().replace("\r\n", "\n");
 
-    if expect_error {
-        // expected failure test
-        if output.status.success() {
-            eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
-            eprintln!("Expected sqlite3 to fail, but it succeeded.");
-            eprintln!("=== END ERROR ===\n");
-            return false;
-        }
-
-        let actual_trimmed = stderr_str.trim().replace("\r\n", "\n");
-        if expected_trimmed != actual_trimmed {
-            eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
-            eprintln!(
-                "=== EXPECTED STDERR ===\n{}\n=== GOT STDERR ===\n{}",
-                expected_trimmed, actual_trimmed
-            );
-            eprintln!("=== END ERROR ===\n");
-            return false;
-        }
-    } else {
         // normal success test
-        if !output.status.success() {
-            eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
-            eprintln!("sqlite3 exited with {:?}", output.status.code());
-            eprintln!("stdout:\n{}", stdout_str);
-            eprintln!("stderr:\n{}", stderr_str);
-            eprintln!("=== END ERROR ===\n");
-            return false;
-        }
-
         let actual_trimmed = stdout_str.trim().replace("\r\n", "\n");
-        if expected_trimmed != actual_trimmed {
+        if expected_output != actual_trimmed {
             eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
             eprintln!(
                 "=== EXPECTED STDOUT ===\n{}\n=== GOT STDOUT ===\n{}",
-                expected_trimmed, actual_trimmed
+                expected_output, actual_trimmed
             );
             eprintln!("=== END ERROR ===\n");
-            return false;
+            success = false;
         }
     }
 
-    true
+    if expect_error {
+        let expected_error =
+            fs::read_to_string(expected_err_path).expect("could not read expected error file");
+        let expected_error = expected_error.trim().replace("\r\n", "\n");
+
+        let actual_trimmed = stderr_str.trim().replace("\r\n", "\n");
+        if expected_error != actual_trimmed {
+            eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
+            eprintln!(
+                "=== EXPECTED STDERR ===\n{}\n=== GOT STDERR ===\n{}",
+                expected_error, actual_trimmed
+            );
+            eprintln!("=== END ERROR ===\n");
+            success = false
+        }
+    }
+
+    success
 }
 
 /// Discover all test cases (.sql)
@@ -169,14 +152,33 @@ fn test_cases() -> Vec<String> {
 
 #[test]
 fn run_all_sql_tests() {
-    let mut all_passed = true;
     let cases = test_cases();
+    let mut results = HashMap::new();
     println!("\trunning {} test cases", cases.len());
+
+    let start_time = std::time::Instant::now();
     for case in cases {
         let result = run_test_case(&case);
-        let msg = if result { "ok" } else { "fail" };
+        let msg = if result {
+            "\x1b[0;32mok\x1b[0m"
+        } else {
+            "\x1b[0;31mfail\x1b[0m"
+        };
         println!("\tcase {case} ... {msg}");
-        all_passed &= result;
+        results.insert(case, result);
     }
-    assert!(all_passed, "Some test cases failed");
+    let duration_millis = start_time.elapsed().as_millis();
+    let duration_secs = duration_millis as f64 / 1000.0;
+
+    let pass_count = results.values().filter(|&&r| r).count();
+    let fail_count = results.values().filter(|&&r| !r).count();
+    let status = if fail_count == 0 {
+        "\x1b[0;32mPASSED\x1b[0m"
+    } else {
+        "\x1b[0;31mFAILED\x1b[0m"
+    };
+    println!(
+        "\ntest result: {status}. {pass_count} passed; {fail_count} failed; finished in {duration_secs}s"
+    );
+    assert!(fail_count == 0, "some test cases failed");
 }

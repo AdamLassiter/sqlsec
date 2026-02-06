@@ -78,8 +78,8 @@ pub fn register_table(
     for col in cols {
         conn.execute(
             r#"
-            INSERT OR IGNORE INTO sec_columns (logical_table, column_name, label_id)
-            VALUES (?1, ?2, NULL)
+            INSERT OR IGNORE INTO sec_columns (logical_table, column_name, read_label_id, update_label_id)
+            VALUES (?1, ?2, NULL, NULL)
             "#,
             rusqlite::params![logical, col],
         )?;

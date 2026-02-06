@@ -19,7 +19,8 @@ pub struct SecTable {
 #[derive(Debug)]
 pub struct SecColumn {
     column_name: String,
-    label_id: Option<i64>,
+    read_label_id: Option<i64>,
+    update_label_id: Option<i64>,
 }
 
 fn get_physical_columns(conn: &Connection, table: &str) -> Result<Vec<String>> {
@@ -59,4 +60,49 @@ fn invalid<T: ToString>(msg: T) -> Error {
         ErrorKind::InvalidInput,
         msg.to_string(),
     )))
+}
+
+fn get_sec_columns(conn: &Connection, logical_table: &str) -> Result<Vec<SecColumn>> {
+    let mut stmt = conn.prepare(
+        r#"
+        SELECT column_name, read_label_id, update_label_id
+        FROM sec_columns
+        WHERE logical_table = ?1
+        "#,
+    )?;
+
+    let cols = stmt
+        .query_map([logical_table], |row| {
+            Ok(SecColumn {
+                column_name: row.get(0)?,
+                read_label_id: row.get(1)?,
+                update_label_id: row.get(2)?,
+            })
+        })?
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(cols)
+}
+
+fn get_sec_tables(conn: &Connection) -> Result<Vec<SecTable>> {
+    let mut stmt = conn.prepare(
+        r#"
+        SELECT logical_name, physical_name, row_label_col, table_label_id, insert_label_id
+        FROM sec_tables
+        "#,
+    )?;
+
+    let tables = stmt
+        .query_map([], |row| {
+            Ok(SecTable {
+                logical_name: row.get(0)?,
+                physical_name: row.get(1)?,
+                row_label_col: row.get(2)?,
+                table_label_id: row.get(3)?,
+                insert_label_id: row.get(4)?,
+            })
+        })?
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(tables)
 }

@@ -1,11 +1,11 @@
 pub mod assert_fresh;
 pub mod clear_context;
 pub mod define_label;
+pub mod label_visible;
 pub mod pop_context;
 pub mod push_context;
 pub mod refresh_views;
 pub mod register_table;
-pub mod row_visible;
 pub mod set_attr;
 
 use std::{ffi::CString, fmt::Display};
@@ -16,11 +16,11 @@ use crate::register::{
     assert_fresh::AssertFresh,
     clear_context::ClearContext,
     define_label::DefineLabel,
+    label_visible::LabelVisible,
     pop_context::PopContext,
     push_context::PushContext,
     refresh_views::RefreshViews,
     register_table::RegisterTable,
-    row_visible::RowVisible,
     set_attr::SetAttr,
 };
 
@@ -44,6 +44,6 @@ pub(crate) fn register_functions_ffi(db: *mut sqlite3) {
     PushContext::register(db);
     RefreshViews::register(db);
     RegisterTable::register(db);
-    RowVisible::register(db);
+    LabelVisible::register(db);
     SetAttr::register(db);
 }

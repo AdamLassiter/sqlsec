@@ -9,8 +9,8 @@ CREATE TABLE __sec_customers (
 );
 
 INSERT INTO __sec_customers VALUES
-    (1, 1, 'Alice',   'alice@ex.com',   '111'),
-    (2, 2, 'Bob',     'bob@ex.com',     '222'),
+  (1, 1, 'Alice',   'alice@ex.com',   '111'),
+  (2, 2, 'Bob',     'bob@ex.com',     '222'),
   (3, 3, 'Charlie', 'charlie@ex.com', '333');
 
 .load ./target/debug/libsqlsec
@@ -21,9 +21,9 @@ SELECT sec_define_label('(role=admin|role=auditor)');
 
 SELECT sec_register_table('customers', '__sec_customers', 'row_label_id', NULL, NULL);
 
-UPDATE sec_columns SET label_id = sec_define_label('role=admin')
+UPDATE sec_columns SET read_label_id = sec_define_label('role=admin')
   WHERE logical_table = 'customers' AND column_name = 'ssn';
-UPDATE sec_columns SET label_id = sec_define_label('(role=admin|role=auditor)')
+UPDATE sec_columns SET read_label_id = sec_define_label('(role=admin|role=auditor)')
   WHERE logical_table = 'customers' AND column_name = 'email';
 
 .output /dev/null

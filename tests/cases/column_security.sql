@@ -21,8 +21,8 @@ SELECT sec_define_label('role=finance');
 
 SELECT sec_register_table('employees', '__sec_employees', 'row_label_id', NULL, NULL);
 
-UPDATE sec_columns SET label_id = sec_define_label('role=manager') WHERE column_name = 'salary';
-UPDATE sec_columns SET label_id = sec_define_label('role=finance') WHERE column_name = 'department';
+UPDATE sec_columns SET read_label_id = sec_define_label('role=manager') WHERE column_name = 'salary';
+UPDATE sec_columns SET read_label_id = sec_define_label('role=finance') WHERE column_name = 'department';
 
 .output /dev/null
 SELECT sec_clear_context();

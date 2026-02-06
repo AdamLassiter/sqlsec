@@ -5,7 +5,7 @@ use rusqlite::{Connection, Error, Result};
 use crate::{
     context::{effective_context, sec_ctx::SecurityContext},
     label::evaluate::is_visible_conn,
-    views::{SecColumn, SecTable, write_triggers::create_write_triggers},
+    views::{SecTable, get_sec_columns, get_sec_tables, write_triggers::create_write_triggers},
 };
 
 fn refresh_err(err: Error, table: &str) -> Error {
@@ -19,7 +19,7 @@ fn refresh_err(err: Error, table: &str) -> Error {
 pub fn refresh_views(conn: &mut Connection, ctx: &SecurityContext) -> Result<()> {
     let tx = conn.transaction()?; // BEGIN
 
-    let tables = load_sec_tables(&tx)?;
+    let tables = get_sec_tables(&tx)?;
 
     for table in tables {
         refresh_single_view(&tx, &table, ctx).map_err(|e| refresh_err(e, &table.logical_name))?;
@@ -63,10 +63,10 @@ fn refresh_single_view(conn: &Connection, table: &SecTable, ctx: &SecurityContex
     }
 
     // Get columns and filter by visibility
-    let all_columns = load_sec_columns(conn, &table.logical_name)?;
+    let all_columns = get_sec_columns(conn, &table.logical_name)?;
     let visible_columns: Vec<&str> = all_columns
         .iter()
-        .filter(|c| is_visible_conn(conn, c.label_id, ctx))
+        .filter(|c| is_visible_conn(conn, c.read_label_id, ctx))
         .map(|c| c.column_name.as_str())
         .collect();
 
@@ -93,7 +93,7 @@ fn refresh_single_view(conn: &Connection, table: &SecTable, ctx: &SecurityContex
         SELECT {}
         FROM "{}"
         WHERE sec_assert_fresh()
-          AND sec_row_visible("{}");
+          AND sec_label_visible("{}");
         "#,
         table.logical_name,
         table.logical_name,
@@ -108,40 +108,4 @@ fn refresh_single_view(conn: &Connection, table: &SecTable, ctx: &SecurityContex
     create_write_triggers(conn, table, &visible_columns)?;
 
     Ok(())
-}
-
-fn load_sec_tables(conn: &Connection) -> Result<Vec<SecTable>> {
-    let mut stmt = conn.prepare(
-        "SELECT logical_name, physical_name, row_label_col, table_label_id, insert_label_id FROM sec_tables",
-    )?;
-
-    let tables = stmt
-        .query_map([], |row| {
-            Ok(SecTable {
-                logical_name: row.get(0)?,
-                physical_name: row.get(1)?,
-                row_label_col: row.get(2)?,
-                table_label_id: row.get(3)?,
-                insert_label_id: row.get(4)?,
-            })
-        })?
-        .collect::<Result<Vec<_>>>()?;
-
-    Ok(tables)
-}
-
-fn load_sec_columns(conn: &Connection, logical_table: &str) -> Result<Vec<SecColumn>> {
-    let mut stmt =
-        conn.prepare("SELECT column_name, label_id FROM sec_columns WHERE logical_table = ?1")?;
-
-    let cols = stmt
-        .query_map([logical_table], |row| {
-            Ok(SecColumn {
-                column_name: row.get(0)?,
-                label_id: row.get(1)?,
-            })
-        })?
-        .collect::<Result<Vec<_>>>()?;
-
-    Ok(cols)
 }

@@ -9,15 +9,13 @@ use std::{
     ptr,
 };
 
-use rusqlite::{
-    ffi::{
-        SQLITE_ERROR,
-        SQLITE_OK,
-        rusqlite_extension_init2,
-        sqlite3,
-        sqlite3_api_routines,
-        sqlite3_malloc,
-    },
+use rusqlite::ffi::{
+    SQLITE_ERROR,
+    SQLITE_OK,
+    rusqlite_extension_init2,
+    sqlite3,
+    sqlite3_api_routines,
+    sqlite3_malloc,
 };
 
 use crate::init::init_extension_ffi;

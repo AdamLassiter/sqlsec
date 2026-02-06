@@ -19,18 +19,18 @@ use crate::{
     register::{Sqlite3FunctionV2, sqlite_error},
 };
 
-pub struct RowVisible;
+pub struct LabelVisible;
 
-impl Sqlite3FunctionV2 for RowVisible {
+impl Sqlite3FunctionV2 for LabelVisible {
     fn register(db: *mut sqlite3) {
         unsafe {
             sqlite3_create_function_v2(
                 db,
-                c"sec_row_visible".as_ptr(),
+                c"sec_label_visible".as_ptr(),
                 1,
                 SQLITE_UTF8,
                 std::ptr::null_mut(),
-                Some(ffi_sec_row_visible),
+                Some(ffi_sec_label_visible),
                 None,
                 None,
                 None,
@@ -39,14 +39,14 @@ impl Sqlite3FunctionV2 for RowVisible {
     }
 }
 
-pub(crate) extern "C" fn ffi_sec_row_visible(
+pub(crate) extern "C" fn ffi_sec_label_visible(
     ctx: *mut sqlite3_context,
     argc: c_int,
     argv: *mut *mut sqlite3_value,
 ) {
     unsafe {
         if argc != 1 {
-            sqlite_error(ctx, "row_visible", "expected 1 argument");
+            sqlite_error(ctx, "label_visible", "expected 1 argument");
             return;
         }
 
@@ -65,7 +65,7 @@ pub(crate) extern "C" fn ffi_sec_row_visible(
                 match evaluate_by_id(db_ptr, id, &sec_ctx) {
                     Ok(res) => res,
                     Err(e) => {
-                        sqlite_error(ctx, "row_visible", e);
+                        sqlite_error(ctx, "label_visible", e);
                         return;
                     }
                 }

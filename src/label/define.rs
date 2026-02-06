@@ -4,8 +4,6 @@ use rusqlite::{Connection, Result};
 
 use crate::label::{LABEL_CACHE, parse::parse};
 
-
-
 /// Define a label using a Connection reference (for tests and direct use)
 pub fn define_label(conn: &Connection, expr: &str) -> Result<i64> {
     conn.execute(

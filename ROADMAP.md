@@ -98,7 +98,7 @@ Why:
 
 ### 10. Index-aware row filtering
 
-Teach `sec_row_visible()` to:
+Teach `sec_label_visible()` to:
 
 * Detect static truths
 * Push predicates into WHERE clauses

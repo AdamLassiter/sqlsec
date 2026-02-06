@@ -1,0 +1,42 @@
+------------------------------------------------------------
+[Developer trying to update name - should succeed]
+id  name         salary  title    
+--  -----------  ------  ---------
+1   Alice Smith  50000   Developer
+------------------------------------------------------------
+[Developer trying to update salary - should fail]
+------------------------------------------------------------
+[Developer trying to update title - should fail]
+------------------------------------------------------------
+[Manager trying to update salary - should succeed]
+id  name         salary  title    
+--  -----------  ------  ---------
+1   Alice Smith  55000   Developer
+------------------------------------------------------------
+[Manager trying to update title - should fail]
+------------------------------------------------------------
+[HR trying to update title - should succeed]
+id  name         salary  title           
+--  -----------  ------  ----------------
+1   Alice Smith  55000   Senior Developer
+------------------------------------------------------------
+[HR trying to update salary - should fail]
+------------------------------------------------------------
+[Admin trying to update salary - should fail (needs manager)]
+------------------------------------------------------------
+[Admin trying to update title - should succeed]
+id  name         salary  title             
+--  -----------  ------  ------------------
+1   Alice Smith  55000   Principal Engineer
+------------------------------------------------------------
+[Admin+Manager updating both salary and title - should succeed]
+id  name         salary  title         
+--  -----------  ------  --------------
+1   Alice Smith  120000  VP Engineering
+------------------------------------------------------------
+[Final state of all employees]
+department   id  name         row_label_id  salary  title         
+-----------  --  -----------  ------------  ------  --------------
+Engineering  1   Alice Smith  1             120000  VP Engineering
+Engineering  2   Bob          1             75000   Senior Dev    
+Sales        3   Charlie      1             60000   Rep           

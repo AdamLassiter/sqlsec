@@ -1,6 +1,10 @@
 use rusqlite::{Connection, Result};
 
-use crate::views::{SecTable, get_primary_key_columns, invalid};
+use crate::{
+    context::effective_context,
+    label::evaluate::is_visible_conn,
+    views::{SecTable, get_primary_key_columns, get_sec_columns, invalid},
+};
 
 pub fn create_write_triggers(
     conn: &Connection,
@@ -34,7 +38,7 @@ fn create_delete_trigger(conn: &Connection, table: &SecTable) -> Result<(), rusq
 
             DELETE FROM "{physical}"
             WHERE {pk_where_old}
-              AND sec_row_visible("{row_label_col}");
+              AND sec_label_visible("{row_label_col}");
         END;
         "#
     );
@@ -62,9 +66,10 @@ fn create_update_trigger(
     let pk_cols = pk_cols(conn, physical)?;
     let pk_where_old = pk_where_old(&pk_cols);
 
-    let refesh_guard = refresh_guard();
+    let refresh_guard = refresh_guard();
     let update_pk_guard = update_pk_guard(pk_cols);
     let update_label_guard = update_label_guard(row_label_col);
+    let column_policy_guards = column_update_policy_guards(conn, logical)?;
 
     let update_trigger = format!(
         r#"
@@ -72,14 +77,15 @@ fn create_update_trigger(
         CREATE TEMP TRIGGER "{logical}_sec_upd"
         INSTEAD OF UPDATE ON "{logical}"
         BEGIN
-            {refesh_guard}
+            {refresh_guard}
             {update_pk_guard}
             {update_label_guard}
+            {column_policy_guards}
 
             UPDATE "{physical}"
             SET {update_sets}
             WHERE {pk_where_old}
-              AND sec_row_visible("{row_label_col}");
+              AND sec_label_visible("{row_label_col}");
         END;
         "#
     );
@@ -116,7 +122,7 @@ fn create_insert_trigger(
                     FROM sec_tables
                     WHERE logical_name = '{logical}'
                       AND insert_label_id IS NOT NULL
-                      AND sec_row_visible(insert_label_id)
+                      AND sec_label_visible(insert_label_id)
                 ),
                 (
                     SELECT table_label_id
@@ -134,7 +140,7 @@ fn create_insert_trigger(
 
     let refesh_guard = refresh_guard();
     let implicit_label_guard = implicit_label_guard(logical, row_label_col);
-    let row_visible_guard = row_visible_guard(row_label_col);
+    let label_visible_guard = label_visible_guard(row_label_col);
 
     let insert_trigger = format!(
         r#"
@@ -144,7 +150,7 @@ fn create_insert_trigger(
         BEGIN
             {refesh_guard}
             {implicit_label_guard}
-            {row_visible_guard}
+            {label_visible_guard}
 
             INSERT INTO "{physical}" ("{row_label_col}", {insert_cols})
             VALUES (
@@ -175,12 +181,12 @@ fn update_pk_guard(pk_cols: Vec<String>) -> String {
     )
 }
 
-fn row_visible_guard(row_label_col: &String) -> String {
+fn label_visible_guard(row_label_col: &String) -> String {
     format!(
         r#"
         SELECT CASE
             WHEN NEW."{row_label_col}" IS NOT NULL
-             AND NOT sec_row_visible(NEW."{row_label_col}")
+             AND NOT sec_label_visible(NEW."{row_label_col}")
             THEN RAISE(ABORT, 'row_label_col {row_label_col} not visible')
         END;
         "#
@@ -216,7 +222,7 @@ fn refresh_guard() -> &'static str {
     (r#"
     SELECT CASE
         WHEN (SELECT value FROM sec_meta WHERE key = 'generation')
-           != (SELECT value FROM sec_meta WHERE key = 'last_refresh_generation')
+          != (SELECT value FROM sec_meta WHERE key = 'last_refresh_generation')
         THEN RAISE(ABORT, 'security views are stale: call sec_refresh_views()')
     END;
     "#) as _
@@ -246,4 +252,36 @@ fn trigger_err(err: rusqlite::Error, table: &str, kind: &str) -> rusqlite::Error
         "failed to create {} trigger for table '{}': {}",
         kind, table, err
     ))))
+}
+
+fn column_update_policy_guards(
+    conn: &Connection,
+    logical: &str,
+) -> Result<String, rusqlite::Error> {
+    let mut guards = Vec::new();
+
+    let ctx = effective_context(unsafe { conn.handle() as usize });
+    let all_columns = get_sec_columns(conn, logical)?;
+
+    // Generate guards for columns that have a policy AND the user doesn't satisfy it
+    let protected_columns = all_columns
+        .iter()
+        .filter(|c| {
+            c.update_label_id.is_some() 
+                && !is_visible_conn(conn, c.update_label_id, &ctx)
+        });
+
+    for col in protected_columns {
+        let col_name = &col.column_name;
+        guards.push(format!(
+            r#"
+            SELECT CASE
+                WHEN OLD."{col_name}" IS NOT NEW."{col_name}"
+                THEN RAISE(ABORT, 'update denied on column {col_name}')
+            END;
+            "#
+        ));
+    }
+
+    Ok(guards.join("\n"))
 }

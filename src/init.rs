@@ -25,9 +25,10 @@ pub(crate) unsafe fn init_extension_ffi(db: *mut sqlite3) -> Result<()> {
         );
 
         CREATE TABLE IF NOT EXISTS sec_columns (
-            logical_table TEXT NOT NULL,
-            column_name   TEXT NOT NULL,
-            label_id      INTEGER REFERENCES sec_labels(id),
+            logical_table   TEXT NOT NULL,
+            column_name     TEXT NOT NULL,
+            read_label_id   INTEGER REFERENCES sec_labels(id),
+            update_label_id INTEGER REFERENCES sec_labels(id),
             PRIMARY KEY (logical_table, column_name)
         );
 
