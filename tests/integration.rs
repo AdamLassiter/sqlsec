@@ -95,39 +95,45 @@ fn run_test_case(name: &str) -> bool {
     let stdout_str = String::from_utf8_lossy(&output.stdout);
     let stderr_str = String::from_utf8_lossy(&output.stderr);
 
-    if expect_output {
-        let expected_output =
-            fs::read_to_string(expected_out_path).expect("could not read expected output file");
-        let expected_output = expected_output.trim().replace("\r\n", "\n");
+    let expected_output = if expect_output {
+        fs::read_to_string(expected_out_path)
+            .expect("could not read expected output file")
+            .trim()
+            .replace("\r\n", "\n")
+    } else {
+        "".into()
+    };
 
-        // normal success test
-        let actual_trimmed = stdout_str.trim().replace("\r\n", "\n");
-        if expected_output != actual_trimmed {
-            eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
-            eprintln!(
-                "=== EXPECTED STDOUT ===\n{}\n=== GOT STDOUT ===\n{}",
-                expected_output, actual_trimmed
-            );
-            eprintln!("=== END ERROR ===\n");
-            success = false;
-        }
+    // normal success test
+    let actual_trimmed = stdout_str.trim().replace("\r\n", "\n");
+    if expected_output != actual_trimmed {
+        eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
+        eprintln!(
+            "=== EXPECTED STDOUT ===\n{}\n=== GOT STDOUT ===\n{}",
+            expected_output, actual_trimmed
+        );
+        eprintln!("=== END ERROR ===\n");
+        success = false;
     }
 
-    if expect_error {
-        let expected_error =
-            fs::read_to_string(expected_err_path).expect("could not read expected error file");
-        let expected_error = expected_error.trim().replace("\r\n", "\n");
+    let expected_error = if expect_error {
+        fs::read_to_string(expected_err_path)
+            .expect("could not read expected error file")
+            .trim()
+            .replace("\r\n", "\n")
+    } else {
+        "".into()
+    };
 
-        let actual_trimmed = stderr_str.trim().replace("\r\n", "\n");
-        if expected_error != actual_trimmed {
-            eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
-            eprintln!(
-                "=== EXPECTED STDERR ===\n{}\n=== GOT STDERR ===\n{}",
-                expected_error, actual_trimmed
-            );
-            eprintln!("=== END ERROR ===\n");
-            success = false
-        }
+    let actual_trimmed = stderr_str.trim().replace("\r\n", "\n");
+    if expected_error != actual_trimmed {
+        eprintln!("\n=== ERROR IN TEST CASE ===\n{}", name);
+        eprintln!(
+            "=== EXPECTED STDERR ===\n{}\n=== GOT STDERR ===\n{}",
+            expected_error, actual_trimmed
+        );
+        eprintln!("=== END ERROR ===\n");
+        success = false
     }
 
     success

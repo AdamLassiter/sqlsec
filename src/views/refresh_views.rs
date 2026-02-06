@@ -4,7 +4,7 @@ use rusqlite::{Connection, Error, Result};
 
 use crate::{
     context::{effective_context, sec_ctx::SecurityContext},
-    label::evaluate::is_visible_conn,
+    label::evaluate::{is_visible_conn, load_levels},
     views::{SecTable, get_sec_columns, get_sec_tables, write_triggers::create_write_triggers},
 };
 
@@ -17,6 +17,8 @@ fn refresh_err(err: Error, table: &str) -> Error {
 
 /// Refresh views using Connection reference
 pub fn refresh_views(conn: &mut Connection, ctx: &SecurityContext) -> Result<()> {
+    load_levels(conn)?;
+
     let tx = conn.transaction()?; // BEGIN
 
     let tables = get_sec_tables(&tx)?;

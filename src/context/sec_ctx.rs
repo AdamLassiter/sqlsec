@@ -7,6 +7,14 @@ pub struct SecurityContext {
 }
 
 impl SecurityContext {
+    pub fn get_attrs(&self, key: &str) -> Vec<&String> {
+        self.attrs
+            .get(key)
+            .iter()
+            .flat_map(|set| set.iter())
+            .collect()
+    }
+
     pub fn set_attr(&mut self, key: &str, value: &str) {
         self.attrs
             .entry(key.to_string())

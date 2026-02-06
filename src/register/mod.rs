@@ -1,6 +1,7 @@
 pub mod assert_fresh;
 pub mod clear_context;
 pub mod define_label;
+pub mod define_level;
 pub mod label_visible;
 pub mod pop_context;
 pub mod push_context;
@@ -16,6 +17,7 @@ use crate::register::{
     assert_fresh::AssertFresh,
     clear_context::ClearContext,
     define_label::DefineLabel,
+    define_level::DefineLevel,
     label_visible::LabelVisible,
     pop_context::PopContext,
     push_context::PushContext,
@@ -40,6 +42,7 @@ pub(crate) fn register_functions_ffi(db: *mut sqlite3) {
     AssertFresh::register(db);
     ClearContext::register(db);
     DefineLabel::register(db);
+    DefineLevel::register(db);
     PopContext::register(db);
     PushContext::register(db);
     RefreshViews::register(db);

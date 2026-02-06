@@ -15,6 +15,13 @@ pub(crate) unsafe fn init_extension_ffi(db: *mut sqlite3) -> Result<()> {
             expr TEXT NOT NULL UNIQUE
         );
 
+        CREATE TABLE IF NOT EXISTS sec_levels (
+            attr_name   TEXT NOT NULL,
+            level_name  TEXT NOT NULL,
+            level_value INTEGER NOT NULL,
+            PRIMARY KEY (attr_name, level_name)
+        );
+
         CREATE TABLE IF NOT EXISTS sec_tables (
             logical_name   TEXT PRIMARY KEY,
             physical_name  TEXT NOT NULL,

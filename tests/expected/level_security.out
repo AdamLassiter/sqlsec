@@ -1,0 +1,28 @@
+------------------------------------------------------------
+[Public clearance - sees only public]
+id  title          classification
+--  -------------  --------------
+1   Public Notice  public        
+------------------------------------------------------------
+[Confidential clearance - sees public + confidential]
+id  title          classification
+--  -------------  --------------
+1   Public Notice  public        
+2   Internal Memo  confidential  
+------------------------------------------------------------
+[Secret clearance - sees public + confidential + secret]
+id  title          classification
+--  -------------  --------------
+1   Public Notice  public        
+2   Internal Memo  confidential  
+3   Project Plans  secret        
+------------------------------------------------------------
+[Top Secret clearance - sees all documents]
+id  title             classification
+--  ----------------  --------------
+1   Public Notice     public        
+2   Internal Memo     confidential  
+3   Project Plans     secret        
+4   Defense Strategy  top_secret    
+------------------------------------------------------------
+[No clearance set - sees nothing]

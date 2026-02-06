@@ -1,27 +1,39 @@
+use std::{collections::HashMap, sync::LazyLock};
+
+use parking_lot::Mutex;
+
 pub mod define;
 pub mod evaluate;
 pub mod parse;
 
-use std::collections::HashMap;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompareOp {
+    Eq, // =
+    Ge, // >=
+    Gt, // >
+    Le, // <=
+    Lt, // <
+}
 
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
-
-/// A single requirement: key=value
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct AttrReq {
     pub key: String,
+    pub op: CompareOp,
     pub value: String,
 }
 
-/// OR-group: any of these requirements satisfies the clause
 pub type Clause = Vec<AttrReq>;
 
-/// AND of OR-groups (CNF)
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Label {
     pub clauses: Vec<Clause>,
     pub always_true: bool,
 }
 
-pub static LABEL_CACHE: Lazy<Mutex<HashMap<i64, Label>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+// Cache: label_id -> Label
+pub static LABEL_CACHE: LazyLock<Mutex<HashMap<i64, Label>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+// Cache: attr_name -> (level_name -> level_value)
+pub static LEVELS_CACHE: LazyLock<Mutex<HashMap<String, HashMap<String, i64>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
