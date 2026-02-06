@@ -1,0 +1,9 @@
+------------------------------------------------------------
+[Attempt to update primary key - should fail]
+------------------------------------------------------------
+[Attempt to update row_label_id - should fail]
+------------------------------------------------------------
+[Update name - should succeed]
+id  name          row_label_id
+--  ------------  ------------
+1   Updated Item  1
