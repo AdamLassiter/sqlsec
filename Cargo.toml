@@ -1,7 +1,8 @@
 [workspace]
 members = [
-    "sqlsec",
+#    "sqlsec",
     "sqlshim",
+    "lazytest",
 ]
 
 resolver = "3"
