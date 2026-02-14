@@ -1,0 +1,28 @@
+[package]
+name = "sqlevfs"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+libsqlite3-sys = { version = "0.36", features = [] }
+aes-gcm = "0.10"
+zeroize = { version = "1", features = ["derive"] }
+getrandom = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bincode = "1"
+anyhow = "1"
+argon2 = "0.5"
+hmac = "0.12"
+sha2 = "0.10"
+log = "0.4"
+env_logger = "0.11"
+ureq = { version = "2", features = ["json"] }
+parking_lot = "0.12"
+libc = "0.2"
+
+[build-dependencies]
+pkg-config = "0.3"

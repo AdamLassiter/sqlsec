@@ -22,16 +22,17 @@ use sqlparser::{
 
 use crate::statement::CustomStatement;
 
-pub static PLUGIN_REGISTRY: LazyLock<PluginRegistry> = LazyLock::new(|| PluginRegistry {
-    #[cfg(feature = "default_plugins")]
-    plugins: vec![
+pub static PLUGIN_REGISTRY: LazyLock<PluginRegistry> = LazyLock::new(|| {
+    let mut plugins = vec![];
+
+    #[cfg(feature = "sqlsec")]
+    plugins.extend::<Vec<Box<dyn CustomPlugin + Send + Sync + 'static>>>(vec![
         Box::new(clear_context::ClearContextPlugin),
         Box::new(create_policy::CreatePolicyPlugin),
         Box::new(create_secure_view::CreateSecureViewPlugin),
         Box::new(define_label::DefineLabelPlugin),
         Box::new(define_level::DefineLevelPlugin),
         Box::new(drop_policy::DropPolicyPlugin),
-        Box::new(enable_audit::EnableAuditPlugin),
         Box::new(explain_policy::ExplainPolicyPlugin),
         Box::new(pop_context::PopContextPlugin),
         Box::new(push_context::PushContextPlugin),
@@ -39,9 +40,16 @@ pub static PLUGIN_REGISTRY: LazyLock<PluginRegistry> = LazyLock::new(|| PluginRe
         Box::new(register_secure_table::RegisterSecureTablePlugin),
         Box::new(set_column_security::SetColumnSecurityPlugin),
         Box::new(set_context::SetContextPlugin),
-    ],
-    #[cfg(not(feature = "default_plugins"))]
-    plugins: vec![],
+    ]);
+    
+    #[cfg(feature = "sqlaudit")]
+    plugins.extend::<Vec<Box<dyn CustomPlugin + Send + Sync + 'static>>>(vec![
+        Box::new(enable_audit::EnableAuditPlugin),
+    ]);
+
+    PluginRegistry {
+        plugins,
+    }
 });
 
 pub struct PluginRegistry {

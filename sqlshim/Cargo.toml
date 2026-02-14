@@ -12,5 +12,6 @@ regex = "1"
 sqlparser = "0.60"
 
 [features]
-default = ["default_plugins"]
-default_plugins = []
+default = ["sqlsec", "sqlaudit"]
+sqlsec = []
+sqlaudit = []
