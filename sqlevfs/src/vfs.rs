@@ -303,7 +303,9 @@ unsafe extern "C" fn evfs_read(
             let page_no = page_no_for_offset(i_ofst, page_size);
             if page_no != 1 {
                 let slice = std::slice::from_raw_parts_mut(buf as *mut u8, amt);
-                if let Err(e) = ctx.decrypt_page(slice, page_no) {
+                if is_encrypted_page(slice, ctx.reserve_size)
+                    && let Err(e) = ctx.decrypt_page(slice, page_no)
+                {
                     log::error!("evfs xRead decrypt page {page_no}: {e}");
                     return SQLITE_IOERR_READ;
                 }
