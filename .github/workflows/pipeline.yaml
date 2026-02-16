@@ -16,7 +16,7 @@ jobs:
       - name: Setup SQLite
         run: |
           wget https://sqlite.org/2026/sqlite-tools-linux-x64-3510200.zip && unzip sqlite-tools-linux-x64-3510200.zip -d sqlite-tools
-          echo "$(pwd)/sqlite-tools" >> $GITEA_PATH
+          echo "$(pwd)/sqlite-tools" >> $GIHUB_PATH
           apt install -y libsqlite3-dev
 
       - uses: actions/checkout@v4
